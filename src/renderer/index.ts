@@ -1,36 +1,12 @@
-export interface RendererNode {
-    [key: string]: any
-}
-
-export interface RendererElement extends RendererNode {}
-
-const Text = Symbol()
-const Comment = Symbol()
-const Fragment = Symbol()
-
-interface VNode {
-    type: string | Text | Comment | Fragment
-    children: string | VNode[]
-    el?: RendererElement
-    props: {
-        [key: string]: any
-    }
-}
-
-interface Options {
-    createElement(tag: string): RendererElement
-    setElement(el: RendererElement, text: string): void
-    createText(text: string): RendererElement
-    setText(el: RendererElement, text: string): void
-    createComment(text: string): RendererElement
-    insert(el: RendererElement, parent: RendererElement): void
-    patchProps(
-        el: RendererElement,
-        key: string,
-        prevValue: any,
-        nextValue: any
-    ): void
-}
+import {
+    Text,
+    Comment,
+    Fragment,
+    Options,
+    RendererElement,
+    VNode,
+} from './types'
+import { simpleDiff } from './diff'
 
 export function createRenderer(options: Options) {
     const {
@@ -43,8 +19,12 @@ export function createRenderer(options: Options) {
         patchProps,
     } = options
 
-    function mountElement(vnode: VNode, container: RendererElement) {
-        const el = (vnode.el = createElement(vnode.type))
+    function mountElement(
+        type: string,
+        vnode: VNode,
+        container: RendererElement
+    ) {
+        const el = (vnode.el = createElement(type))
         if (typeof vnode.children === 'string') {
             setElement(el, vnode.children)
         } else if (Array.isArray(vnode.children)) {
@@ -61,7 +41,6 @@ export function createRenderer(options: Options) {
     }
 
     function patchChildren(n1: VNode, n2: VNode, container: RendererElement) {
-        console.log(n1, n2)
         if (typeof n2.children === 'string') {
             if (Array.isArray(n1.children)) {
                 n1.children.forEach((c) => unmount(c))
@@ -69,8 +48,7 @@ export function createRenderer(options: Options) {
             setElement(container, n2.children)
         } else if (Array.isArray(n2.children)) {
             if (Array.isArray(n1.children)) {
-                n1.children.forEach((c) => unmount(c))
-                n2.children.forEach((c) => patch(null, c, container))
+                simpleDiff(n1.children, n2.children, patch, unmount, container)
             } else {
                 setElement(container, '')
                 n2.children.forEach((c) => patch(null, c, container))
@@ -80,7 +58,6 @@ export function createRenderer(options: Options) {
 
     function patchElement(n1: VNode, n2: VNode) {
         const el = (n2.el = n1.el)
-        console.log(el)
         if (!el) return
         const newProps = n2.props
         const oldProps = n1.props
@@ -105,11 +82,11 @@ export function createRenderer(options: Options) {
         const type = n2.type
         if (typeof type === 'string') {
             if (!n1) {
-                mountElement(n2, container)
+                mountElement(type, n2, container)
             } else {
                 patchElement(n1, n2)
             }
-        } else if (n2.type === Text) {
+        } else if (n2.type === Text && typeof n2.children === 'string') {
             if (!n1) {
                 const el = (n2.el = createText(n2.children))
                 insert(el, container)
@@ -119,7 +96,7 @@ export function createRenderer(options: Options) {
                     setText(el, n2.children)
                 }
             }
-        } else if (n2.type === Comment) {
+        } else if (n2.type === Comment && typeof n2.children === 'string') {
             if (!n1) {
                 const el = (n2.el = createComment(n2.children))
                 insert(el, container)
@@ -129,7 +106,7 @@ export function createRenderer(options: Options) {
                     setText(el, n2.children)
                 }
             }
-        } else if (n2.type === Fragment) {
+        } else if (n2.type === Fragment && Array.isArray(n2.children)) {
             if (!n1) {
                 n2.children.forEach((c) => patch(null, c, container))
             } else {

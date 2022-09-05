@@ -1,6 +1,7 @@
 import { createRenderer, RendererElement } from './renderer'
 
 const container = document.querySelector('#root')
+const opera = document.querySelector('#opera')
 
 function shouldSetAsprops(el: RendererElement, key: string) {
     if (el.tagName === 'INPUT' && key === 'from') return false
@@ -65,33 +66,104 @@ const renderer = createRenderer({
     },
 })
 
-window.reRender = function () {
-    container &&
-        renderer.render(
-            {
-                type: 'ul',
-                children: [
-                    {
-                        type: 'li',
-                        children: '123',
-                        props: {
-                            class: 'text',
-                            onclick(e) {
-                                console.log(e)
-                            },
+const oldNode = {
+    type: 'ul',
+    children: [
+        {
+            type: 'li',
+            children: '123',
+            props: {
+                class: 'text',
+                onclick(e) {
+                    console.log(e)
+                },
+            },
+        },
+        {
+            type: 'li',
+            children: '123',
+            props: {},
+        },
+    ],
+    props: {},
+}
+
+const newNode = {
+    type: 'ul',
+    children: [
+        {
+            type: 'li',
+            children: '123',
+            props: {
+                class: 'text',
+                onclick(e) {
+                    console.log(e)
+                },
+            },
+        },
+        {
+            type: 'li',
+            children: '123',
+            props: {
+                class: 'text',
+                onclick(e) {
+                    console.log(e)
+                },
+            },
+        },
+        {
+            type: 'li',
+            children: '123',
+            props: {
+                class: 'text',
+                onclick(e) {
+                    console.log(e)
+                },
+            },
+        },
+        {
+            type: 'li',
+            children: '123',
+            props: {},
+        },
+    ],
+    props: {},
+}
+
+opera &&
+    renderer.render(
+        {
+            type: 'div',
+            children: [
+                {
+                    type: 'button',
+                    children: '渲染',
+                    props: {
+                        onclick() {
+                            container && renderer.render(oldNode, container)
                         },
                     },
-                    {
-                        type: 'li',
-                        children: '123',
-                        props: {},
+                },
+                {
+                    type: 'button',
+                    children: '重新渲染',
+                    props: {
+                        onclick() {
+                            container && renderer.render(newNode, container)
+                        },
                     },
-                ],
-                props: {},
-            },
-            container
-        )
-}
-window.unmount = function () {
-    container && renderer.render(null, container)
-}
+                },
+                {
+                    type: 'button',
+                    children: '卸载',
+                    props: {
+                        onclick() {
+                            container && renderer.render(null, container)
+                        },
+                    },
+                },
+            ],
+            props: {},
+        },
+        opera
+    )
